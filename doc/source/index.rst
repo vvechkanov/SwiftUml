@@ -33,8 +33,14 @@ be found on the `OpenStack wiki`_ and at http://docs.openstack.org.
 
 .. toctree::
     :maxdepth: 1
-    
+
     getting_started
+
+Basic knowledge
+===============
+
+.. toctree::
+    basicknoledge
 
 Overview and Concepts
 =====================
