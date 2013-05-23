@@ -274,7 +274,7 @@ class Controller(object):
         self.allowed_methods = set()
         all_methods = inspect.getmembers(self, predicate=inspect.ismethod)
         for name, m in all_methods:
-            if getattr(m, 'publicly_accessible', False):
+            if hasattr(m, 'is_generic'):
                 self.allowed_methods.add(name)
 
     def _x_remove_headers(self):

@@ -1613,19 +1613,36 @@ def streq_const_time(s1, s2):
     return result == 0
 
 
-def public(func):
+def public(param):
     """
-    Decorator to declare which methods are publicly accessible as HTTP
-    requests
+    Function which can be decorator without parameter (then param is
+    decorated function) or with parameter (then param value is
+    "is_generic" parameter). "is_generic" value means can this function be
+    used for
 
-    :param func: function to make public
+    :param param: decorated function OR value of "is_generic" parameter
     """
-    func.publicly_accessible = True
+    def decorator(func):
+        """
+        Decorator to declare which methods are publicly for specified server
+        type.
 
-    @functools.wraps(func)
-    def wrapped(*a, **kw):
-        return func(*a, **kw)
-    return wrapped
+        :param func: function to make public
+        """
+        if callable(param):
+            func.is_generic = True
+        else:
+            func.is_generic = param
+
+        @functools.wraps(func)
+        def wrapped(*a, **kw):
+            return func(*a, **kw)
+        return wrapped
+
+    if callable(param):
+        return decorator(param)
+    else:
+        return decorator
 
 
 def rsync_ip(ip):

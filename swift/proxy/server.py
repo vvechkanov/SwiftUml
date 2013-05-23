@@ -228,7 +228,7 @@ class Application(object):
             self.logger.client_ip = get_remote_client(req)
             try:
                 handler = getattr(controller, req.method)
-                getattr(handler, 'publicly_accessible')
+                getattr(handler, 'is_generic')
             except AttributeError:
                 allowed_methods = getattr(controller, 'allowed_methods', set())
                 return HTTPMethodNotAllowed(
