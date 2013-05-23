@@ -475,17 +475,9 @@ class ObjectController(object):
         self.slow = int(conf.get('slow', 0))
         self.bytes_per_sync = int(conf.get('mb_per_sync', 512)) * 1024 * 1024
         replication_server = conf.get('replication_server', None)
-        if replication_server is None:
-            allowed_methods = ['DELETE', 'PUT', 'HEAD', 'GET', 'REPLICATE',
-                               'POST']
-        else:
+        if replication_server is not None:
             replication_server = config_true_value(replication_server)
-            if replication_server:
-                allowed_methods = ['REPLICATE']
-            else:
-                allowed_methods = ['DELETE', 'PUT', 'HEAD', 'GET', 'POST']
         self.replication_server = replication_server
-        self.allowed_methods = allowed_methods
         default_allowed_headers = '''
             content-disposition,
             content-encoding,
@@ -964,6 +956,7 @@ class ObjectController(object):
         resp = response_class(request=request)
         return resp
 
+    @replication
     @public
     @timing_stats(sample_rate=0.1)
     def REPLICATE(self, request):
@@ -1001,7 +994,9 @@ class ObjectController(object):
                 try:
                     method = getattr(self, req.method)
                     getattr(method, 'publicly_accessible')
-                    if req.method not in self.allowed_methods:
+                    replication_method = getattr(method, 'replication', False)
+                    if (self.replication_server != replication_method
+                            and self.replication_server is not None):
                         raise AttributeError('Not allowed method.')
                 except AttributeError:
                     res = HTTPMethodNotAllowed()

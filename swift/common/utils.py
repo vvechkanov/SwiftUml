@@ -1612,6 +1612,19 @@ def streq_const_time(s1, s2):
         result |= ord(a) ^ ord(b)
     return result == 0
 
+def replication(func):
+    """
+    Decorator to declare which methods are accessible ifor replication
+    server
+
+    :param func: function to make public
+    """
+    func.replication = True
+
+    @functools.wraps(func)
+    def wrapped(*a, **kw):
+        return func(*a, **kw)
+    return wrapped
 
 def public(func):
     """

@@ -56,17 +56,9 @@ class ContainerController(object):
         self.node_timeout = int(conf.get('node_timeout', 3))
         self.conn_timeout = float(conf.get('conn_timeout', 0.5))
         replication_server = conf.get('replication_server', None)
-        if replication_server is None:
-            allowed_methods = ['DELETE', 'PUT', 'HEAD', 'GET', 'REPLICATE',
-                               'POST']
-        else:
+        if replication_server is not None:
             replication_server = config_true_value(replication_server)
-            if replication_server:
-                allowed_methods = ['REPLICATE']
-            else:
-                allowed_methods = ['DELETE', 'PUT', 'HEAD', 'GET', 'POST']
         self.replication_server = replication_server
-        self.allowed_methods = allowed_methods
         self.allowed_sync_hosts = [
             h.strip()
             for h in conf.get('allowed_sync_hosts', '127.0.0.1').split(',')
@@ -453,6 +445,7 @@ class ContainerController(object):
         ret.charset = 'utf-8'
         return ret
 
+    @replication
     @public
     @timing_stats(sample_rate=0.01)
     def REPLICATE(self, req):
@@ -527,7 +520,9 @@ class ContainerController(object):
                 try:
                     method = getattr(self, req.method)
                     getattr(method, 'publicly_accessible')
-                    if req.method not in self.allowed_methods:
+                    replication_method = getattr(method, 'replication', False)
+                    if (self.replication_server != replication_method
+                            and self.replication_server is not None):
                         raise AttributeError('Not allowed method.')
                 except AttributeError:
                     res = HTTPMethodNotAllowed()

@@ -2628,24 +2628,14 @@ class TestObjectController(unittest.TestCase):
 
     def test_list_allowed_methods(self):
         """ Test list of allowed_methods """
-        methods = ['DELETE', 'PUT', 'HEAD', 'GET', 'REPLICATE', 'POST']
-        self.assertEquals(self.object_controller.allowed_methods, methods)
-
-    def test_allowed_methods_from_configuration_file(self):
-        """
-        Test list of allowed_methods which
-        were set from configuration file.
-        """
-        conf = {'devices': self.testdir, 'mount_check': 'false'}
-        self.assertEquals(object_server.ObjectController(conf).allowed_methods,
-                          ['DELETE', 'PUT', 'HEAD', 'GET', 'REPLICATE',
-                           'POST'])
-        conf['replication_server'] = 'True'
-        self.assertEquals(object_server.ObjectController(conf).allowed_methods,
-                          ['REPLICATE'])
-        conf['replication_server'] = 'False'
-        self.assertEquals(object_server.ObjectController(conf).allowed_methods,
-                          ['DELETE', 'PUT', 'HEAD', 'GET', 'POST'])
+        obj_methods = ['DELETE', 'PUT', 'HEAD', 'GET', 'POST']
+        repl_methods = ['REPLICATE']
+        for method_name in obj_methods:
+            method = getattr(self.object_controller, method_name)
+            self.assertEquals(method.replication, False)
+        for method_name in repl_methods:
+            method = getattr(self.object_controller, method_name)
+            self.assertEquals(method.replication, True)
 
     def test_correct_allowed_method(self):
         """
@@ -2655,13 +2645,15 @@ class TestObjectController(unittest.TestCase):
         inbuf = StringIO()
         errbuf = StringIO()
         outbuf = StringIO()
+        self.object_controller = object_server.ObjectController(
+            {'devices': self.testdir, 'mount_check': 'false',
+             'replication_server': 'false'})
 
         def start_response(*args):
             """ Sends args to outbuf """
             outbuf.writelines(args)
 
-        method = self.object_controller.allowed_methods[0]
-
+        method = 'PUT'
         env = {'REQUEST_METHOD': method,
                'SCRIPT_NAME': '',
                'PATH_INFO': '/sda1/p/a/c',
@@ -2682,6 +2674,7 @@ class TestObjectController(unittest.TestCase):
 
         with mock.patch.object(self.object_controller, method,
                                return_value=mock.MagicMock()) as mock_method:
+            mock_method.replication = False
             response = self.object_controller.__call__(env, start_response)
             self.assertNotEqual(response, answer)
             self.assertEqual(mock_method.call_count, 1)
@@ -2694,12 +2687,15 @@ class TestObjectController(unittest.TestCase):
         inbuf = StringIO()
         errbuf = StringIO()
         outbuf = StringIO()
+        self.object_controller = object_server.ObjectController(
+            {'devices': self.testdir, 'mount_check': 'false',
+             'replication_server': 'false'})
 
         def start_response(*args):
             """ Sends args to outbuf """
             outbuf.writelines(args)
 
-        method = self.object_controller.allowed_methods[0]
+        method = 'PUT'
 
         env = {'REQUEST_METHOD': method,
                'SCRIPT_NAME': '',
@@ -2721,11 +2717,10 @@ class TestObjectController(unittest.TestCase):
 
         with mock.patch.object(self.object_controller, method,
                                return_value=mock.MagicMock()) as mock_method:
-            self.object_controller.allowed_methods.remove(method)
+            mock_method.replication = True
             response = self.object_controller.__call__(env, start_response)
             self.assertEqual(mock_method.call_count, 0)
             self.assertEqual(response, answer)
-            self.object_controller.allowed_methods.append(method)
 
 
 if __name__ == '__main__':
